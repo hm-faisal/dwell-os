@@ -41,16 +41,22 @@ export default function Home() {
 
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
-            href="/properties"
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 font-semibold text-sm hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-sm text-center"
+            href="/explore"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 font-semibold text-sm hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors shadow-sm text-center"
           >
-            Launch Properties Dashboard →
+            Explore Listings & Rooms →
+          </Link>
+          <Link
+            href="/properties"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-center"
+          >
+            Properties Dashboard
           </Link>
           <Link
             href="/properties/new"
-            className="w-full sm:w-auto px-6 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-center"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-semibold text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-center text-zinc-600 dark:text-zinc-400"
           >
-            + Create New Property
+            + Add Property
           </Link>
         </div>
       </div>

@@ -61,6 +61,7 @@ export function DashboardNavbar() {
   };
 
   const navItems = [
+    { label: "Explore", href: "/explore" },
     { label: "Properties", href: "/properties" },
     { label: "Add Property", href: "/properties/new" },
   ];

@@ -17,6 +17,13 @@ import type {
   Room,
   UpdateRoomDTO,
 } from "../types/room";
+import type {
+  CreateSavedSearchDTO,
+  SavedSearch,
+  SearchFilters,
+  SearchPropertiesResponse,
+  SearchResultProperty,
+} from "../types/search";
 import { showToast } from "./toast";
 
 export class ApiError extends Error {
@@ -474,6 +481,16 @@ function normalizeProperty(p: unknown): Property {
   } as Property;
 }
 
+function normalizeSearchResultProperty(p: unknown): SearchResultProperty {
+  const prop = normalizeProperty(p);
+  const raw = p as Record<string, unknown>;
+  const rawAvail = Array.isArray(raw.availableRooms) ? raw.availableRooms : [];
+  return {
+    ...prop,
+    availableRooms: rawAvail.map(normalizeRoom),
+  } as SearchResultProperty;
+}
+
 export const propertiesApi = {
   list: async (query?: ListPropertiesQuery): Promise<Property[]> => {
     const params = new URLSearchParams();
@@ -625,5 +642,108 @@ export const uploadsApi = {
     }
 
     return { url: res.url };
+  },
+};
+
+export const searchApi = {
+  searchProperties: async (
+    filters?: SearchFilters,
+  ): Promise<SearchPropertiesResponse> => {
+    const params = new URLSearchParams();
+    if (filters?.location) params.set("location", filters.location);
+    if (filters?.priceMin !== undefined) {
+      params.set("priceMin", String(Math.round(filters.priceMin * 100)));
+    }
+    if (filters?.priceMax !== undefined) {
+      params.set("priceMax", String(Math.round(filters.priceMax * 100)));
+    }
+    if (filters?.roomType) params.set("roomType", filters.roomType);
+    if (filters?.isFurnished !== undefined) {
+      params.set("isFurnished", String(filters.isFurnished));
+    }
+    if (filters?.moveInDate) {
+      const dateStr = filters.moveInDate.includes("T")
+        ? filters.moveInDate
+        : new Date(filters.moveInDate).toISOString();
+      params.set("moveInDate", dateStr);
+    }
+    if (filters?.amenities && filters.amenities.length > 0) {
+      params.set("amenities", filters.amenities.join(","));
+    }
+    if (filters?.cursor) params.set("cursor", filters.cursor);
+    if (filters?.limit) params.set("limit", String(filters.limit));
+
+    const queryStr = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest<
+      | SearchPropertiesResponse
+      | {
+          items: SearchResultProperty[];
+          nextCursor?: string | null;
+          limit?: number;
+        }
+    >(`/search/properties${queryStr}`);
+
+    const rawItems = Array.isArray(res)
+      ? res
+      : res &&
+          typeof res === "object" &&
+          "items" in res &&
+          Array.isArray(res.items)
+        ? res.items
+        : [];
+    const items = rawItems.map(normalizeSearchResultProperty);
+    const nextCursor =
+      res && typeof res === "object" && "nextCursor" in res
+        ? (res.nextCursor as string | null | undefined)
+        : null;
+
+    return {
+      items,
+      nextCursor: nextCursor || null,
+      hasMore: Boolean(nextCursor),
+      limit:
+        res &&
+        typeof res === "object" &&
+        "limit" in res &&
+        typeof res.limit === "number"
+          ? res.limit
+          : filters?.limit || 20,
+    };
+  },
+
+  createSavedSearch: async (
+    data: CreateSavedSearchDTO,
+  ): Promise<SavedSearch> => {
+    return apiRequest<SavedSearch>("/search/saved", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  getSavedSearches: async (): Promise<SavedSearch[]> => {
+    const res = await apiRequest<SavedSearch[] | { items: SavedSearch[] }>(
+      "/search/saved",
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  deleteSavedSearch: async (
+    id: string,
+  ): Promise<{ success: boolean; message: string }> => {
+    return apiRequest<{ success: boolean; message: string }>(
+      `/search/saved/${id}`,
+      {
+        method: "DELETE",
+      },
+    );
   },
 };

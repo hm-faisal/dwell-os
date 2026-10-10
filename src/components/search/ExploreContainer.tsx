@@ -150,7 +150,7 @@ export function ExploreContainer() {
     };
   }, [filters]);
 
-  // Compute listing type counts for pill toggle (FR-2.2)
+  // Compute listing type counts for pill toggle
   const listingCounts = useMemo(() => {
     const roommate = properties.filter(isRoommateListing).length;
     const vacant = properties.filter(isOwnerVacantListing).length;
@@ -184,7 +184,7 @@ export function ExploreContainer() {
         </p>
       </div>
 
-      {/* Multimodal Filter Bar (FR-2.1, FR-2.3) */}
+      {/* Multimodal Filter Bar */}
       <SearchFilterBar
         filters={filters}
         onChange={updateUrlFilters}
@@ -196,7 +196,7 @@ export function ExploreContainer() {
         isLoading={isLoading}
       />
 
-      {/* Secondary Controls: Listing Type Segregation (FR-2.2) & View Switcher */}
+      {/* Secondary Controls: Listing Type Segregation & View Switcher */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
         <ListingTypeToggle
           value={filters.listingType || "ALL"}
@@ -331,7 +331,7 @@ export function ExploreContainer() {
         </div>
       )}
 
-      {/* Save Search Modal (FR-2.4) */}
+      {/* Save Search Modal */}
       <SaveSearchModal
         isOpen={isSaveModalOpen}
         onClose={() => setIsSaveModalOpen(false)}
@@ -339,7 +339,7 @@ export function ExploreContainer() {
         onSaved={() => setSavedSearchesCount((c) => c + 1)}
       />
 
-      {/* Saved Searches Drawer (FR-2.4) */}
+      {/* Saved Searches Drawer */}
       <SavedSearchesDrawer
         isOpen={isSavedDrawerOpen}
         onClose={() => setIsSavedDrawerOpen(false)}

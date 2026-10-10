@@ -39,7 +39,7 @@ export function ListingGrid({
   onResetFilters,
   onFocusOnMap,
 }: ListingGridProps) {
-  // Client-side segregation filter (FR-2.2)
+  // Client-side segregation filter
   const filteredProperties = properties.filter((p) =>
     matchesListingType(p, listingType),
   );

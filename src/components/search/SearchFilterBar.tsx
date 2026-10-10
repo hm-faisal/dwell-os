@@ -433,7 +433,7 @@ export function SearchFilterBar({
               />
             </div>
 
-            {/* Requested Move-in Date (FR-2.3) */}
+            {/* Requested Move-in Date */}
             <div className="space-y-1.5">
               <label
                 htmlFor="search-filter-move-in-date"

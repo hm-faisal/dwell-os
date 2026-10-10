@@ -96,7 +96,7 @@ export function ListingCard({
         {/* Gradient shadow for text & badges */}
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
 
-        {/* Top Badges: Roommate Classification (FR-2.2) and Property Type */}
+        {/* Top Badges: Roommate Classification and Property Type */}
         <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 pointer-events-auto">
           <div className="flex flex-wrap items-center gap-1.5">
             {isRoommate ? (
@@ -249,7 +249,7 @@ export function ListingCard({
             </p>
           </div>
 
-          {/* Move-in availability info (FR-2.3) */}
+          {/* Move-in availability info */}
           <div className="pt-1 flex flex-wrap items-center gap-2 text-xs">
             {earliestAvailable && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-100/80 dark:bg-zinc-800/70 text-zinc-700 dark:text-zinc-300 font-medium">
@@ -293,16 +293,24 @@ export function ListingCard({
                   >
                     <div className="flex items-center gap-1.5 font-medium text-zinc-800 dark:text-zinc-200">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span className="truncate max-w-[140px]">
+                      <span className="truncate max-w-[120px]">
                         {room.name}
                       </span>
                       <span className="text-[10px] text-zinc-400 uppercase font-mono">
                         ({room.type})
                       </span>
                     </div>
-                    <span className="font-semibold text-zinc-950 dark:text-zinc-50">
-                      {formatCurrency(room.rent)}/mo
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-zinc-950 dark:text-zinc-50">
+                        {formatCurrency(room.rent)}/mo
+                      </span>
+                      <Link
+                        href={`/applications/apply?roomId=${room.id}`}
+                        className="px-2 py-0.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-semibold transition-all shadow-2xs"
+                      >
+                        Apply
+                      </Link>
+                    </div>
                   </div>
                 ))}
                 {availableRooms.length > 2 && (

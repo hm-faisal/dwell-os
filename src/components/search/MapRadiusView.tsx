@@ -106,7 +106,7 @@ export function MapRadiusView({
           <span className="text-zinc-400">Radar View</span>
         </div>
 
-        {/* Radius selector pills (FR-2.1) */}
+        {/* Radius selector pills */}
         <div className="flex items-center gap-1 p-1 rounded-2xl bg-zinc-900/90 backdrop-blur-md border border-white/15 shadow-md">
           <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
             Radius:
@@ -160,7 +160,7 @@ export function MapRadiusView({
           </defs>
           <rect width="100" height="100" fill={`url(#${mapGridPatternId})`} />
 
-          {/* Concentric Search Radius Circles (FR-2.1) */}
+          {/* Concentric Search Radius Circles */}
           <circle
             cx="50"
             cy="50"

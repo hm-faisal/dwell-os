@@ -4,31 +4,21 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EmailVerificationBanner } from "@/components/auth/EmailVerificationBanner";
-import {
-  authApi,
-  clearStoredTokens,
-  getStoredToken,
-  getStoredUser,
-  setStoredToken,
-} from "@/lib/api";
+import { authApi, getStoredToken, getStoredUser } from "@/lib/api";
 import type { User } from "@/types/auth";
 
 export function DashboardNavbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const [token, setTokenState] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [showTokenModal, setShowTokenModal] = useState(false);
-  const [inputToken, setInputToken] = useState("");
 
   useEffect(() => {
-    const currentToken = getStoredToken();
-    setTokenState(currentToken);
     const localUser = getStoredUser();
     if (localUser) {
       setUser(localUser);
     }
 
+    const currentToken = getStoredToken();
     if (currentToken) {
       authApi
         .getMe()
@@ -37,25 +27,8 @@ export function DashboardNavbar() {
     }
   }, []);
 
-  const handleSaveToken = () => {
-    if (inputToken.trim()) {
-      setStoredToken(inputToken.trim());
-      setTokenState(inputToken.trim());
-      authApi
-        .getMe()
-        .then((profile) => setUser(profile))
-        .catch(() => {});
-    } else {
-      clearStoredTokens();
-      setTokenState(null);
-      setUser(null);
-    }
-    setShowTokenModal(false);
-  };
-
   const handleLogout = async () => {
     await authApi.logout();
-    setTokenState(null);
     setUser(null);
     router.push("/login");
   };
@@ -63,6 +36,8 @@ export function DashboardNavbar() {
   const navItems = [
     { label: "Explore", href: "/explore" },
     { label: "Properties", href: "/properties" },
+    { label: "Roommates", href: "/roommates" },
+    { label: "Finance", href: "/finance" },
     { label: "Add Property", href: "/properties/new" },
   ];
 
@@ -137,68 +112,12 @@ export function DashboardNavbar() {
                 </Link>
               </div>
             )}
-
-            <button
-              type="button"
-              onClick={() => {
-                setInputToken(token || "");
-                setShowTokenModal(true);
-              }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-xl border border-black/5 dark:border-white/10 bg-white/80 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/80 dark:hover:bg-zinc-700/80 transition-all duration-150 active:scale-95 shadow-2xs cursor-pointer"
-            >
-              <span
-                className={`w-2 h-2 rounded-full ring-2 ring-white dark:ring-zinc-900 ${
-                  token ? "bg-emerald-500" : "bg-amber-400"
-                }`}
-              />
-              <span className="hidden sm:inline">
-                {token ? "Authenticated" : "Set Auth Token"}
-              </span>
-            </button>
           </div>
         </div>
       </header>
 
       {/* Persistent Email Verification Warning Banner */}
       <EmailVerificationBanner user={user} />
-
-      {/* Auth Token Modal */}
-      {showTokenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 dark:bg-black/65 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl border border-black/10 dark:border-white/10 rounded-2xl sm:rounded-3xl shadow-2xl p-6 sm:p-7 w-full max-w-md apple-rim-highlight animate-in zoom-in-95 duration-200">
-            <h3 className="text-lg font-semibold tracking-[-0.015em] text-zinc-950 dark:text-zinc-50">
-              Authentication Token
-            </h3>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 leading-normal">
-              Paste a Landlord/Owner JWT access token to authenticate API calls
-              against the DwellOS backend.
-            </p>
-            <textarea
-              value={inputToken}
-              onChange={(e) => setInputToken(e.target.value)}
-              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-              rows={4}
-              className="mt-3.5 w-full p-3 text-xs font-mono bg-zinc-100/70 dark:bg-zinc-800/60 border border-zinc-200/90 dark:border-zinc-700/70 rounded-xl focus:bg-white dark:focus:bg-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-colors"
-            />
-            <div className="mt-4 flex justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowTokenModal(false)}
-                className="px-3.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors active:scale-95 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveToken}
-                className="px-4 py-1.5 text-xs font-semibold bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all active:scale-95 shadow-xs cursor-pointer"
-              >
-                Save Token
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -360,9 +360,6 @@ export default function RoomsInventoryPage({ params }: PageProps) {
                           {room.size ? ` • ${room.size} sq ft` : ""}
                         </p>
                       </div>
-                      <span className="text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-lg border border-black/5 dark:border-white/5">
-                        v{room.version}
-                      </span>
                     </div>
 
                     {/* Financial & Stay Info */}
@@ -420,7 +417,22 @@ export default function RoomsInventoryPage({ params }: PageProps) {
                 </div>
 
                 {/* Actions */}
-                <div className="p-4 pt-0 flex items-center justify-between gap-2.5 mt-2">
+                <div className="p-4 pt-0 flex items-center justify-between gap-2 mt-2">
+                  {room.status === "AVAILABLE" && (
+                    <Link
+                      href={`/applications/apply?roomId=${room.id}`}
+                      className="flex-1"
+                    >
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                      >
+                        Apply Now
+                      </Button>
+                    </Link>
+                  )}
+
                   {room.status !== "ARCHIVED" && (
                     <Button
                       variant={
@@ -438,10 +450,14 @@ export default function RoomsInventoryPage({ params }: PageProps) {
 
                   <Link
                     href={`/properties/${propertyId}/rooms/${room.id}/edit`}
-                    className="flex-1"
+                    className={room.status === "AVAILABLE" ? "" : "flex-1"}
                   >
-                    <Button variant="primary" size="sm" className="w-full">
-                      Edit Room
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                    >
+                      Edit
                     </Button>
                   </Link>
                 </div>

@@ -192,11 +192,6 @@ function RoomEditFormContent({
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               Edit Room
             </h1>
-            {room && (
-              <span className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 px-2 py-0.5 rounded">
-                Version {room.version}
-              </span>
-            )}
             {room && <StatusBadge status={roomStatus} />}
           </div>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">

@@ -473,14 +473,24 @@ export default function PropertyDetailPage({ params }: PageProps) {
                       </div>
                     </div>
 
-                    <div className="pt-1 flex items-center justify-between">
+                    <div className="pt-2 flex items-center justify-between border-t border-black/5 dark:border-white/5">
                       <Badge variant="neutral">{room.type}</Badge>
-                      <Link
-                        href={`/properties/${property.id}/rooms/${room.id}/edit`}
-                        className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline"
-                      >
-                        Edit Room →
-                      </Link>
+                      <div className="flex items-center gap-2.5">
+                        {room.status === "AVAILABLE" && (
+                          <Link
+                            href={`/applications/apply?roomId=${room.id}`}
+                            className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all"
+                          >
+                            Apply Now
+                          </Link>
+                        )}
+                        <Link
+                          href={`/properties/${property.id}/rooms/${room.id}/edit`}
+                          className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                        >
+                          Edit →
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 ))}

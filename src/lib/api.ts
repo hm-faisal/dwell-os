@@ -1,3 +1,10 @@
+import type { AdminUser, AuditLog, Dispute } from "../types/admin";
+import type {
+  Application,
+  ApproveApplicationDTO,
+  CreateApplicationDTO,
+  UpdateApplicationStatusDTO,
+} from "../types/application";
 import type {
   AuthResponse,
   AuthTokens,
@@ -5,6 +12,19 @@ import type {
   RegisterDTO,
   User,
 } from "../types/auth";
+import type { OwnerDashboardOverview, RentInvoice } from "../types/dashboard";
+import type {
+  DocumentAuditLog,
+  Lease,
+  RentalDocument,
+  SignDocumentDTO,
+} from "../types/lease";
+import type {
+  CreateMaintenanceRequestDTO,
+  MaintenanceRequest,
+  RateMaintenanceDTO,
+  UpdateMaintenanceStatusDTO,
+} from "../types/maintenance";
 import type {
   CreatePropertyDTO,
   ListPropertiesQuery,
@@ -18,12 +38,35 @@ import type {
   UpdateRoomDTO,
 } from "../types/room";
 import type {
+  ExpressInterestDTO,
+  RoommateApproval,
+  RoommateApprovalDTO,
+  RoommateMatch,
+  RoommateMatchesResponse,
+  RoommateProfile,
+  UpsertRoommateProfileDTO,
+} from "../types/roommate";
+import type {
   CreateSavedSearchDTO,
   SavedSearch,
   SearchFilters,
   SearchPropertiesResponse,
   SearchResultProperty,
 } from "../types/search";
+import type {
+  BillShare,
+  CreateUtilityBillDTO,
+  UtilityBill,
+} from "../types/utility";
+import type {
+  SubmitVerificationDTO,
+  Verification,
+} from "../types/verification";
+import type {
+  CreateViewingRequestDTO,
+  UpdateViewingRequestDTO,
+  ViewingRequest,
+} from "../types/viewing";
 import { showToast } from "./toast";
 
 export class ApiError extends Error {
@@ -745,5 +788,549 @@ export const searchApi = {
         method: "DELETE",
       },
     );
+  },
+};
+
+export const roommateMatchingApi = {
+  getMyProfile: async (): Promise<RoommateProfile | null> => {
+    try {
+      return await apiRequest<RoommateProfile>("/roommate-profile");
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        return null;
+      }
+      throw err;
+    }
+  },
+
+  getProfile: async (userId: string): Promise<RoommateProfile> => {
+    return apiRequest<RoommateProfile>(`/roommate-profile/${userId}`);
+  },
+
+  upsertProfile: async (
+    data: UpsertRoommateProfileDTO,
+  ): Promise<RoommateProfile> => {
+    return apiRequest<RoommateProfile>("/roommate-profile", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  getMatches: async (query?: {
+    minScore?: number;
+    cursor?: string;
+    limit?: number;
+  }): Promise<RoommateMatchesResponse> => {
+    const params = new URLSearchParams();
+    if (query?.minScore !== undefined) {
+      params.set("minScore", String(query.minScore));
+    }
+    if (query?.cursor) params.set("cursor", query.cursor);
+    if (query?.limit) params.set("limit", String(query.limit));
+
+    const queryStr = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest<
+      | RoommateMatchesResponse
+      | { items: RoommateMatch[]; nextCursor?: string | null; limit?: number }
+    >(`/matches${queryStr}`);
+
+    const items = Array.isArray(res)
+      ? res
+      : res &&
+          typeof res === "object" &&
+          "items" in res &&
+          Array.isArray(res.items)
+        ? res.items
+        : [];
+    const nextCursor =
+      res && typeof res === "object" && "nextCursor" in res
+        ? (res.nextCursor as string | null | undefined)
+        : null;
+
+    return {
+      items,
+      nextCursor: nextCursor || null,
+      limit:
+        res &&
+        typeof res === "object" &&
+        "limit" in res &&
+        typeof res.limit === "number"
+          ? res.limit
+          : query?.limit || 20,
+    };
+  },
+
+  expressInterest: async (
+    targetUserId: string,
+    data?: ExpressInterestDTO,
+  ): Promise<RoommateMatch> => {
+    return apiRequest<RoommateMatch>(`/matches/${targetUserId}/interest`, {
+      method: "POST",
+      body: JSON.stringify(data || { interested: true }),
+    });
+  },
+
+  approveRoommate: async (
+    roomId: string,
+    data: RoommateApprovalDTO,
+  ): Promise<RoommateApproval> => {
+    return apiRequest<RoommateApproval>(`/rooms/${roomId}/roommate-approval`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+export const applicationsApi = {
+  list: async (query?: {
+    roomId?: string;
+    status?: string;
+  }): Promise<Application[]> => {
+    const params = new URLSearchParams();
+    if (query?.roomId) params.set("roomId", query.roomId);
+    if (query?.status) params.set("status", query.status);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest<Application[] | { items: Application[] }>(
+      `/applications${qs}`,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  get: async (id: string): Promise<Application> => {
+    return apiRequest<Application>(`/applications/${id}`);
+  },
+
+  create: async (data: CreateApplicationDTO): Promise<Application> => {
+    return apiRequest<Application>("/applications", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateStatus: async (
+    id: string,
+    data: UpdateApplicationStatusDTO,
+  ): Promise<Application> => {
+    return apiRequest<Application>(`/applications/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  approve: async (
+    id: string,
+    data?: ApproveApplicationDTO,
+  ): Promise<{
+    success: boolean;
+    application: Application;
+    leaseId?: string;
+  }> => {
+    return apiRequest<{
+      success: boolean;
+      application: Application;
+      leaseId?: string;
+    }>(`/applications/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify(data || {}),
+    });
+  },
+};
+
+export const viewingsApi = {
+  list: async (query?: {
+    roomId?: string;
+    status?: string;
+  }): Promise<ViewingRequest[]> => {
+    const params = new URLSearchParams();
+    if (query?.roomId) params.set("roomId", query.roomId);
+    if (query?.status) params.set("status", query.status);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest<
+      ViewingRequest[] | { items: ViewingRequest[] }
+    >(`/viewing-requests${qs}`);
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  get: async (id: string): Promise<ViewingRequest> => {
+    return apiRequest<ViewingRequest>(`/viewing-requests/${id}`);
+  },
+
+  create: async (data: CreateViewingRequestDTO): Promise<ViewingRequest> => {
+    return apiRequest<ViewingRequest>("/viewing-requests", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateStatus: async (
+    id: string,
+    data: UpdateViewingRequestDTO,
+  ): Promise<ViewingRequest> => {
+    return apiRequest<ViewingRequest>(`/viewing-requests/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+export const leasesApi = {
+  list: async (propertyId?: string): Promise<Lease[]> => {
+    const qs = propertyId ? `?propertyId=${propertyId}` : "";
+    const res = await apiRequest<Lease[] | { items: Lease[] }>(`/leases${qs}`);
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  get: async (id: string): Promise<Lease> => {
+    return apiRequest<Lease>(`/leases/${id}`);
+  },
+
+  signDocument: async (
+    documentId: string,
+    data: SignDocumentDTO,
+  ): Promise<RentalDocument> => {
+    return apiRequest<RentalDocument>(`/documents/${documentId}/sign`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  getDocumentAuditLog: async (
+    documentId: string,
+  ): Promise<DocumentAuditLog[]> => {
+    const res = await apiRequest<
+      DocumentAuditLog[] | { items: DocumentAuditLog[] }
+    >(`/documents/${documentId}/audit-log`);
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+};
+
+export const rentApi = {
+  listInvoices: async (leaseId?: string): Promise<RentInvoice[]> => {
+    const endpoint = leaseId ? `/leases/${leaseId}/invoices` : "/invoices";
+    const res = await apiRequest<RentInvoice[] | { items: RentInvoice[] }>(
+      endpoint,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  getInvoice: async (id: string): Promise<RentInvoice> => {
+    return apiRequest<RentInvoice>(`/invoices/${id}`);
+  },
+
+  payRent: async (
+    invoiceId: string,
+    paymentMethodId?: string,
+  ): Promise<{
+    success: boolean;
+    checkoutUrl?: string;
+    paymentIntentId?: string;
+  }> => {
+    return apiRequest<{
+      success: boolean;
+      checkoutUrl?: string;
+      paymentIntentId?: string;
+    }>("/payments/rent", {
+      method: "POST",
+      body: JSON.stringify({ invoiceId, paymentMethodId }),
+    });
+  },
+};
+
+export const utilityBillsApi = {
+  listPropertyBills: async (propertyId: string): Promise<UtilityBill[]> => {
+    const res = await apiRequest<UtilityBill[] | { items: UtilityBill[] }>(
+      `/properties/${propertyId}/bills`,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  getBill: async (id: string): Promise<UtilityBill> => {
+    return apiRequest<UtilityBill>(`/bills/${id}`);
+  },
+
+  getBillShares: async (billId: string): Promise<BillShare[]> => {
+    const res = await apiRequest<BillShare[] | { items: BillShare[] }>(
+      `/bills/${billId}/shares`,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  createBill: async (
+    propertyId: string,
+    data: CreateUtilityBillDTO,
+  ): Promise<UtilityBill> => {
+    return apiRequest<UtilityBill>(`/properties/${propertyId}/bills`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  payShare: async (shareId: string): Promise<{ success: boolean }> => {
+    return apiRequest<{ success: boolean }>("/payments/bill", {
+      method: "POST",
+      body: JSON.stringify({ billShareId: shareId }),
+    });
+  },
+};
+
+export const maintenanceApi = {
+  list: async (roomId?: string): Promise<MaintenanceRequest[]> => {
+    const qs = roomId ? `?roomId=${roomId}` : "";
+    const res = await apiRequest<
+      MaintenanceRequest[] | { items: MaintenanceRequest[] }
+    >(`/maintenance${qs}`);
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  get: async (id: string): Promise<MaintenanceRequest> => {
+    return apiRequest<MaintenanceRequest>(`/maintenance/${id}`);
+  },
+
+  create: async (
+    roomId: string,
+    data: CreateMaintenanceRequestDTO,
+  ): Promise<MaintenanceRequest> => {
+    return apiRequest<MaintenanceRequest>(`/rooms/${roomId}/maintenance`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateStatus: async (
+    id: string,
+    data: UpdateMaintenanceStatusDTO,
+  ): Promise<MaintenanceRequest> => {
+    return apiRequest<MaintenanceRequest>(`/maintenance/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  rate: async (
+    id: string,
+    data: RateMaintenanceDTO,
+  ): Promise<MaintenanceRequest> => {
+    return apiRequest<MaintenanceRequest>(`/maintenance/${id}/rate`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+export const verificationsApi = {
+  list: async (userId?: string): Promise<Verification[]> => {
+    const endpoint = userId
+      ? `/verifications/user/${userId}`
+      : "/verifications";
+    const res = await apiRequest<Verification[] | { items: Verification[] }>(
+      endpoint,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  get: async (id: string): Promise<Verification> => {
+    return apiRequest<Verification>(`/verifications/${id}`);
+  },
+
+  submit: async (data: SubmitVerificationDTO): Promise<Verification> => {
+    return apiRequest<Verification>("/verifications", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateStatus: async (
+    id: string,
+    status: string,
+    notes?: string,
+  ): Promise<Verification> => {
+    return apiRequest<Verification>(`/verifications/${id}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, notes }),
+    });
+  },
+};
+
+export const dashboardApi = {
+  getOverview: async (): Promise<OwnerDashboardOverview> => {
+    return apiRequest<OwnerDashboardOverview>("/dashboard/overview");
+  },
+
+  getPropertyStats: async (
+    propertyId: string,
+  ): Promise<Record<string, unknown>> => {
+    return apiRequest<Record<string, unknown>>(
+      `/dashboard/properties/${propertyId}`,
+    );
+  },
+};
+
+export const adminApi = {
+  listUsers: async (query?: {
+    role?: string;
+    status?: string;
+    search?: string;
+  }): Promise<AdminUser[]> => {
+    const params = new URLSearchParams();
+    if (query?.role) params.set("role", query.role);
+    if (query?.status) params.set("status", query.status);
+    if (query?.search) params.set("search", query.search);
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest<AdminUser[] | { items: AdminUser[] }>(
+      `/admin/users${qs}`,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  updateUser: async (
+    id: string,
+    data: { role?: string; status?: string },
+  ): Promise<AdminUser> => {
+    return apiRequest<AdminUser>(`/admin/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  listDisputes: async (query?: { status?: string }): Promise<Dispute[]> => {
+    const qs = query?.status ? `?status=${query.status}` : "";
+    const res = await apiRequest<Dispute[] | { items: Dispute[] }>(
+      `/admin/disputes${qs}`,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
+  },
+
+  resolveDispute: async (
+    id: string,
+    data: { resolution: string; status?: string },
+  ): Promise<Dispute> => {
+    return apiRequest<Dispute>(`/admin/disputes/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  listAuditLogs: async (query?: {
+    entityType?: string;
+    action?: string;
+    limit?: number;
+  }): Promise<AuditLog[]> => {
+    const params = new URLSearchParams();
+    if (query?.entityType) params.set("entityType", query.entityType);
+    if (query?.action) params.set("action", query.action);
+    if (query?.limit) params.set("limit", String(query.limit));
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest<AuditLog[] | { items: AuditLog[] }>(
+      `/admin/audit-logs${qs}`,
+    );
+    if (Array.isArray(res)) return res;
+    if (
+      res &&
+      typeof res === "object" &&
+      "items" in res &&
+      Array.isArray(res.items)
+    ) {
+      return res.items;
+    }
+    return [];
   },
 };
